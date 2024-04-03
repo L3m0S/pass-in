@@ -1,7 +1,9 @@
 package lemos.com.pass.in.dto.event;
 
 import lemos.com.pass.in.domain.event.Event;
+import lombok.Getter;
 
+@Getter
 public class EventResponseDTO {
 
     EventDTO event;

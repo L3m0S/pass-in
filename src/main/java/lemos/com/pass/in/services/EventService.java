@@ -2,34 +2,32 @@ package lemos.com.pass.in.services;
 
 import lemos.com.pass.in.domain.attendee.Attendee;
 import lemos.com.pass.in.domain.event.Event;
+import lemos.com.pass.in.domain.event.exceptions.EventFullException;
 import lemos.com.pass.in.domain.event.exceptions.EventNotFoundException;
+import lemos.com.pass.in.dto.attendee.AttendeeIdDTO;
+import lemos.com.pass.in.dto.attendee.AttendeeRequestDTO;
 import lemos.com.pass.in.dto.event.EventIdDTO;
 import lemos.com.pass.in.dto.event.EventRequestDTO;
 import lemos.com.pass.in.dto.event.EventResponseDTO;
-import lemos.com.pass.in.repositories.AttendeeRepository;
 import lemos.com.pass.in.repositories.EventRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class EventService {
 
-    @Autowired
     private final EventRepository eventRepository;
+    private final AttendeeService attendeeService;
 
-    @Autowired
-    private final AttendeeRepository attendeeRepository;
+     public EventResponseDTO getEventDTOById(String eventId) {
+         Event event = this.getEventById(eventId);
 
-     public EventResponseDTO getEventById(String eventId) {
-         Event event = this.eventRepository.findById(eventId)
-                 .orElseThrow(() -> new EventNotFoundException("Event not found!"));
-
-         List<Attendee> attendeeList = this.attendeeRepository.findByEventId(eventId);
+         List<Attendee> attendeeList = this.attendeeService.findByEventId(eventId);
          return new EventResponseDTO(event, attendeeList.size());
      };
 
@@ -45,6 +43,32 @@ public class EventService {
 
          return new EventIdDTO(newEvent.getId());
      };
+
+    public AttendeeIdDTO registerAttendeeOnEvent(String eventId, AttendeeRequestDTO attendee) {
+        this.attendeeService.verifyAttendeeSubscription(attendee.email(), eventId);
+
+        Event event = this.getEventById(eventId);
+
+        List<Attendee> attendeeList = this.attendeeService.findByEventId(eventId);
+
+        if (attendeeList.size() >= event.getMaximumAttendees() ) {
+            throw new EventFullException("Event reached the maximum attendees limit!");
+        }
+
+        Attendee newAttendee = new Attendee();
+        newAttendee.setName(attendee.name());
+        newAttendee.setEmail(attendee.email());
+        newAttendee.setEvent(event);
+        newAttendee.setCreatedAt(LocalDateTime.now());
+        this.attendeeService.registerAttendee(newAttendee);
+
+        return new AttendeeIdDTO(newAttendee.getId());
+    }
+
+    public Event getEventById(String eventId) {
+        return this.eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found!"));
+    }
 
      private String createSlug(String text) {
          String normalized = Normalizer.normalize(text, Normalizer.Form.NFD);

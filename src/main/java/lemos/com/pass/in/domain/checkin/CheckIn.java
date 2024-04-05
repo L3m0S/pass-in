@@ -11,7 +11,7 @@ import org.springframework.cglib.core.Local;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "check_in")
+@Table(name = "check_ins")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 public class CheckIn {
 
     @Id
+    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
